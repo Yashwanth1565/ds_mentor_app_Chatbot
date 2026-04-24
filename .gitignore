@@ -1,0 +1,15 @@
+# Virtual environment
+venv/
+vnev/
+
+# Cache
+__pycache__/
+*.pyc
+
+# Vector DB
+chroma1_db/
+
+# Secrets
+.env
+groqapi.txt
+langsmithapi.txt
