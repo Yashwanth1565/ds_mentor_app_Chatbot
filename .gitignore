@@ -1,15 +1,50 @@
-# Virtual environment
-venv/
-vnev/
-
-# Cache
+# -----------------------------
+# PYTHON
+# -----------------------------
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Vector DB
-chroma1_db/
+# -----------------------------
+# VIRTUAL ENV (VERY IMPORTANT)
+# -----------------------------
+venv/
+vnev/
+.env/
 
-# Secrets
-.env
+# -----------------------------
+# CHROMA DB (HUGE FILES)
+# -----------------------------
+chroma_db/
+chroma.sqlite3
+
+# -----------------------------
+# DATA FILES
+# -----------------------------
+data/
+*.pdf
+temp.pdf
+
+# -----------------------------
+# API KEYS / SECRETS (CRITICAL)
+# -----------------------------
 groqapi.txt
 langsmithapi.txt
+
+# -----------------------------
+# OS FILES
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# IDE FILES
+# -----------------------------
+.vscode/
+.idea/
+
+# -----------------------------
+# LOG FILES
+# -----------------------------
+*.log
