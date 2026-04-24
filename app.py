@@ -1,43 +1,30 @@
 import streamlit as st
 from chain import get_response, load_pdf_to_chroma
 
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
 st.set_page_config(page_title="DS Mentor", layout="wide")
-
 st.title("📊 DS Mentor Chatbot")
 
-# -----------------------------
-# SESSION STATE
-# -----------------------------
+# Chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# -----------------------------
-# SIDEBAR (FIXED)
-# -----------------------------
+# Sidebar
 with st.sidebar:
     st.header("📂 Upload PDF")
+    uploaded_file = st.file_uploader("Upload PDF", type="pdf")
 
-    uploaded_file = st.file_uploader("Upload your PDF", type="pdf")
-
-    if uploaded_file is not None:
+    if uploaded_file:
         with open("temp.pdf", "wb") as f:
             f.write(uploaded_file.read())
 
         st.success(load_pdf_to_chroma("temp.pdf"))
 
-# -----------------------------
-# CHAT DISPLAY
-# -----------------------------
-for role, message in st.session_state.chat_history:
+# Display chat
+for role, msg in st.session_state.chat_history:
     with st.chat_message(role):
-        st.write(message)
+        st.write(msg)
 
-# -----------------------------
-# USER INPUT
-# -----------------------------
+# Input
 user_input = st.chat_input("Ask something...")
 
 if user_input:

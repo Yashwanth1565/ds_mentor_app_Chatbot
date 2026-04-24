@@ -2,10 +2,10 @@ import os
 import streamlit as st
 
 # -----------------------------
-# LANGSMITH + GROQ KEYS (STREAMLIT SECRETS)
+# LOAD SECRETS
 # -----------------------------
-LANGSMITH_API_KEY = st.secrets["LANGCHAIN_API_KEY"]
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+LANGSMITH_API_KEY = st.secrets["LANGCHAIN_API_KEY"]
 
 os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -16,14 +16,12 @@ os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 # IMPORTS
 # -----------------------------
 from langchain_groq import ChatGroq
-
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
-
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage
 
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from langchain_community.document_loaders import PyPDFLoader
@@ -37,13 +35,13 @@ embedding = HuggingFaceEmbeddings(
 )
 
 # -----------------------------
-# VECTOR STORE
+# VECTOR STORE (FAISS - SAFE)
 # -----------------------------
-vectorstore = Chroma(
-    persist_directory="./chroma_db",
-    embedding_function=embedding
-)
+@st.cache_resource
+def get_vectorstore():
+    return FAISS.from_texts(["init"], embedding)
 
+vectorstore = get_vectorstore()
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 # -----------------------------
@@ -52,16 +50,13 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 memory = InMemoryChatMessageHistory()
 
 # -----------------------------
-# PROMPTS (UNCHANGED)
+# PROMPTS
 # -----------------------------
 rag_prompt = ChatPromptTemplate.from_messages([
     ("system", """
 You are a Data Science Mentor.
 
 Answer ONLY from the provided context.
-
-If context says "Placement POC is Shaheer sir"
-then answer: "Shaheer sir is the Placement POC."
 
 Keep answers short.
 
@@ -100,13 +95,11 @@ parser = StrOutputParser()
 # -----------------------------
 router_prompt = ChatPromptTemplate.from_messages([
     ("system", """
-Classify the user question into one of two categories:
+Classify the user question into:
 
-1. GENERIC → greetings, basic concepts, general questions
-2. RAG → specific, context-based, needs database lookup
-
-Respond ONLY with one word:
 GENERIC or RAG
+
+Respond ONLY with one word.
 """),
     ("human", "{question}")
 ])
@@ -117,10 +110,9 @@ def route_question(query: str) -> str:
     return router_chain.invoke({"question": query}).strip().upper()
 
 # -----------------------------
-# PDF → CHROMA
+# PDF → VECTORSTORE
 # -----------------------------
 def load_pdf_to_chroma(file_path: str):
-
     loader = PyPDFLoader(file_path)
     documents = loader.load()
 
@@ -131,10 +123,9 @@ def load_pdf_to_chroma(file_path: str):
 
     docs = splitter.split_documents(documents)
 
-    vectorstore.add_documents(docs)
-    vectorstore.persist()
+    vectorstore.add_texts([doc.page_content for doc in docs])
 
-    return "PDF stored successfully!"
+    return "PDF uploaded and indexed!"
 
 # -----------------------------
 # MAIN FUNCTION
