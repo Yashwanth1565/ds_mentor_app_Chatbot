@@ -1,19 +1,16 @@
-# -----------------------------
-# LANGSMITH SETUP (FIRST!)
-# -----------------------------
 import os
+import streamlit as st
 
-print("🚀 Initializing LangSmith...")
-
-with open("langsmithapi.txt", "r") as f:
-    LANGSMITH_API_KEY = f.read().strip()
+# -----------------------------
+# LANGSMITH + GROQ KEYS (STREAMLIT SECRETS)
+# -----------------------------
+LANGSMITH_API_KEY = st.secrets["LANGCHAIN_API_KEY"]
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "ds_mentor_app"
 os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-
-print("✅ LangSmith Enabled")
 
 # -----------------------------
 # IMPORTS
@@ -31,12 +28,6 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-# -----------------------------
-# API KEYS
-# -----------------------------
-with open("groqapi.txt", "r") as f:
-    GROQ_API_KEY = f.read().strip()
 
 # -----------------------------
 # EMBEDDINGS
@@ -61,7 +52,7 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 memory = InMemoryChatMessageHistory()
 
 # -----------------------------
-# PROMPTS
+# PROMPTS (UNCHANGED)
 # -----------------------------
 rag_prompt = ChatPromptTemplate.from_messages([
     ("system", """
@@ -111,10 +102,10 @@ router_prompt = ChatPromptTemplate.from_messages([
     ("system", """
 Classify the user question into one of two categories:
 
-1. GENERIC → greetings, basic concepts
-2. RAG → needs document lookup
+1. GENERIC → greetings, basic concepts, general questions
+2. RAG → specific, context-based, needs database lookup
 
-Respond ONLY with:
+Respond ONLY with one word:
 GENERIC or RAG
 """),
     ("human", "{question}")
@@ -126,7 +117,7 @@ def route_question(query: str) -> str:
     return router_chain.invoke({"question": query}).strip().upper()
 
 # -----------------------------
-# PDF LOADER
+# PDF → CHROMA
 # -----------------------------
 def load_pdf_to_chroma(file_path: str):
 
@@ -143,17 +134,14 @@ def load_pdf_to_chroma(file_path: str):
     vectorstore.add_documents(docs)
     vectorstore.persist()
 
-    return "✅ PDF stored successfully!"
+    return "PDF stored successfully!"
 
 # -----------------------------
-# MAIN RESPONSE FUNCTION
+# MAIN FUNCTION
 # -----------------------------
 def get_response(user_input: str) -> str:
 
-    print("📩 User:", user_input)
-
     route = route_question(user_input)
-    print("🧠 Route:", route)
 
     if route == "GENERIC":
         chain = generic_prompt | llm | parser
@@ -183,7 +171,5 @@ def get_response(user_input: str) -> str:
 
     memory.add_message(HumanMessage(content=user_input))
     memory.add_message(AIMessage(content=response))
-
-    print("🤖 Response:", response)
 
     return response
